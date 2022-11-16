@@ -12,7 +12,9 @@ import mlrun
 mlrun.set_env_from_file("mlrun.env")
 ```
 
-## MLRun Project
+## MLRun Projects
+
+### General Workflow
 ```python
 # Create or load project
 project = mlrun.get_or_create_project(name="my-project", context="./")
@@ -30,7 +32,28 @@ project.save()
 project.run(name="training_pipeline", arguments={...})
 ```
 
-## MLRun Function - Essentials
+### Git Integration
+
+### CI/CD Integration
+
+### Secrets
+```python
+# Add secrets to project
+project.set_secrets(secrets={'AWS_KEY': '111222333'}, provider="kubernetes")
+
+# Run job with all secrets (automatically injects all project secrets for non-local runtimes)
+job.run()
+
+# Retrieve secret within job
+context.get_secret("AWS_KEY")
+
+# Run job with subset of secrets
+job.run(runspec=mlrun.new_task().with_secrets("kubernetes", ["AWS_KEY", "DB_PASSWORD"]))
+```
+
+## MLRun Functions
+
+### Essential Runtimes
 ```python
 # Job - run once to completion
 job = mlrun.code_to_function(name="my-job", filename="my_job.py", kind="job", image="mlrun/mlrun", handler="handler")
@@ -46,7 +69,7 @@ serving.add_model(key="iris", model_path="https://s3.wasabisys.com/iguazio/model
 serving.deploy()
 ```
 
-## MLRun Function - Distributed Runtimes
+### Distributed Runtimes
 ```python
 # MPIJob
 mpijob = mlrun.code_to_function(name="my-mpijob", filename="my_mpijob.py", kind="mpijob", image="mlrun/mlrun", handler="handler")
@@ -79,7 +102,7 @@ spark.deploy() # build image
 spark.run(artifact_path='/User') # run spark job
 ```
 
-## MLRun Function Resources - Essentials
+### Resource Management - Essentials
 ```python
 fn = mlrun.import_function('hub://auto_trainer')
 
@@ -95,7 +118,7 @@ fn.spec.min_replicas = 1
 fn.spec.min_replicas = 4
 ```
 
-## MLRun Function Resources - Advanced
+### Resource Management - Advanced
 ```python
 fn = mlrun.import_function('hub://auto_trainer')
 
@@ -112,7 +135,7 @@ fn.with_priority_class(name="igz-workload-medium")
 fn.with_node_selection(node_selector={"app.iguazio.com/lifecycle" : "non-preemptible"})
 ```
 
-## Serving/Nuclio Triggers
+### Serving/Nuclio Triggers
 ```python
 import nuclio
 serve = mlrun.import_function('hub://v2_model_server')
@@ -134,11 +157,7 @@ serve.add_trigger("cron_interval", spec=nuclio.CronTrigger(interval="10s"))
 serve.add_trigger("cron_schedule", spec=nuclio.CronTrigger(schedule="0 9 * * *"))
 ```
 
-## Building Docker Images
-
-## Git Integration
-
-## CI/CD Integration
+### Building Docker Images
 
 ## Logging
 ```python
@@ -171,21 +190,6 @@ from mlrun.frameworks.sklearn import apply_mlrun
 
 apply_mlrun(model=model, model_name="my_model", x_test=X_test, y_test=y_test)
 model.fit(X_train, y_train)
-```
-
-## Project Secrets
-```python
-# Add secrets to project
-project.set_secrets(secrets={'AWS_KEY': '111222333'}, provider="kubernetes")
-
-# Run job with all secrets (automatically injects all project secrets for non-local runtimes)
-job.run()
-
-# Retrieve secret within job
-context.get_secret("AWS_KEY")
-
-# Run job with subset of secrets
-job.run(runspec=mlrun.new_task().with_secrets("kubernetes", ["AWS_KEY", "DB_PASSWORD"]))
 ```
 
 ## Model Monitoring + Drift Detection
