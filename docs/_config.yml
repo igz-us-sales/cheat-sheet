@@ -1,0 +1,6 @@
+theme: jekyll-theme-cayman
+markdown: kramdown
+title: MLRun Cheat Sheet 
+
+plugins:
+  - jekyll-relative-links
