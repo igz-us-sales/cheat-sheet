@@ -219,7 +219,7 @@ fn.spec.min_replicas = 1
 fn.spec.min_replicas = 4
 ```
 
-#### Mount persistent storage
+#### Mount Persistent Storage
 ```python
 # Mount Iguazio V3IO
 fn.apply(mlrun.mount_v3io())
