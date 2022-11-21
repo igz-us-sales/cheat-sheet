@@ -1,3 +1,6 @@
+## Table of Contents
+{:.no_toc}
+
 * TOC
 {:toc}
 
@@ -75,6 +78,8 @@ fn = project.set_function(
 ### CI/CD Integration
 
 #### Overview
+{:.no_toc}
+
 Docs: [CI/CD integration](https://docs.mlrun.org/en/latest/projects/ci-integration.html)
 
 Best practice for working with CI/CD is using [MLRun Projects](https://docs.mlrun.org/en/latest/projects/project.html) with a combination of the following:
@@ -86,6 +91,8 @@ See [MLRun Projects](https://docs.mlrun.org/en/latest/projects/project.html) for
 ![](./img/cicd_flow.png)
 
 #### Example (GitHub Actions)
+{:.no_toc}
+
 Full Example: [MLRun project-demo](https://github.com/mlrun/project-demo)
 
 ```yaml
@@ -139,6 +146,8 @@ context.get_secret("AWS_KEY")
 Docs: [Kinds of functions (runtimes)](https://docs.mlrun.org/en/latest/concepts/functions-overview.html)
 
 #### Job
+{:.no_toc}
+
 ```python
 # Job - run once to completion
 job = project.set_function(name="my-job", func="my_job.py", kind="job", image="mlrun/mlrun", handler="handler")
@@ -146,6 +155,8 @@ project.run_function(job)
 ```
 
 #### Nuclio
+{:.no_toc}
+
 ```python
 # Nuclio - generic real-time function to do something when triggered
 nuclio = project.set_function(name="my-nuclio", func="my_nuclio.py", kind="nuclio", image="mlrun/mlrun", handler="handler")
@@ -153,6 +164,8 @@ project.deploy_function(nuclio)
 ```
 
 #### Serving
+{:.no_toc}
+
 ```python
 # Serving - specialized Nuclio function specifically for model serving
 serving = project.set_function(name="my-serving", func="my_serving.py", kind="serving", image="mlrun/mlrun", handler="handler")
@@ -164,6 +177,8 @@ project.deploy_function(serving)
 Docs: [Kinds of functions (runtimes)](https://docs.mlrun.org/en/latest/concepts/functions-overview.html)
 
 #### MPIJob (Horovod)
+{:.no_toc}
+
 ```python
 mpijob = mlrun.code_to_function(name="my-mpijob", filename="my_mpijob.py", kind="mpijob", image="mlrun/mlrun", handler="handler")
 mpijob.spec.replicas = 3
@@ -171,6 +186,8 @@ mpijob.run()
 ```
 
 #### Dask
+{:.no_toc}
+
 ```python
 dask = mlrun.new_function(name="my-dask", kind="dask", image="mlrun/ml-models")
 dask.spec.remote = True
@@ -183,6 +200,8 @@ dask.client
 ```
 
 #### Spark Operator
+{:.no_toc}
+
 ```python
 import os
 read_csv_filepath = os.path.join(os.path.abspath('.'), 'spark_read_csv.py')
@@ -203,6 +222,8 @@ spark.run(artifact_path='/User') # run spark job
 Docs: [Managing job resources](https://docs.mlrun.org/en/latest/runtimes/configuring-job-resources.html)
 
 #### Requests/Limits (MEM/CPU/GPU)
+{:.no_toc}
+
 ```python
 # Requests - lower bound
 fn.with_requests(mem="1G", cpu=1)
@@ -212,6 +233,8 @@ fn.with_limits(mem="2G", cpu=2, gpus=1)
 ```
 
 #### Scaling + Auto-Scaling
+{:.no_toc}
+
 ```python
 # Nuclio/serving scaling
 fn.spec.replicas = 2
@@ -220,6 +243,8 @@ fn.spec.min_replicas = 4
 ```
 
 #### Mount Persistent Storage
+{:.no_toc}
+
 ```python
 # Mount Iguazio V3IO
 fn.apply(mlrun.mount_v3io())
@@ -229,16 +254,22 @@ fn.apply(mlrun.platforms.mount_pvc(pvc_name="data-claim", volume_name="data", vo
 ```
 
 #### Pod Priority
+{:.no_toc}
+
 ```python
 fn.with_priority_class(name="igz-workload-medium")
 ```
 
 #### Node Selection
+{:.no_toc}
+
 ```python
 fn.with_node_selection(node_selector={"app.iguazio.com/lifecycle" : "non-preemptible"})
 ```
 
 ### Serving/Nuclio Triggers
+{:.no_toc}
+
 Docs: [Nuclio Triggers](https://github.com/nuclio/nuclio-jupyter/blob/development/nuclio/triggers.py)
 ```python
 import nuclio
@@ -265,6 +296,8 @@ serve.add_trigger("cron_schedule", spec=nuclio.CronTrigger(schedule="0 9 * * *")
 Docs: [Build function image](https://docs.mlrun.org/en/latest/runtimes/image-build.html), [Images and their usage in MLRun](https://docs.mlrun.org/en/latest/runtimes/images.html#images-usage)
 
 #### Manually Build Image
+{:.no_toc}
+
 ```python
 project.set_function(
    "train_code.py", name="trainer", kind="job",
@@ -284,6 +317,8 @@ project.build_function(
 ```
 
 #### Automatically Build Image
+{:.no_toc}
+
 ```python
 project.set_function(
    "train_code.py", name="trainer", kind="job",
@@ -309,6 +344,8 @@ context.logger.error(message="Something went wrong")
 Docs: [MLRun execution context](https://docs.mlrun.org/en/latest/concepts/mlrun-execution-context.html), [Automated experiment tracking](https://docs.mlrun.org/en/latest/concepts/auto-logging-mlops.html)
 
 ### Manual Logging
+{:.no_toc}
+
 ```python
 context.log_result(key="accuracy", value=0.934)
 context.log_model(key="model", model_file="model.pkl")
@@ -316,6 +353,8 @@ context.log_dataset(key="model", df=df, format="csv", index=False)
 ```
 
 ### Automatic Logging
+{:.no_toc}
+
 ```python
 from mlrun.frameworks.sklearn import apply_mlrun
 
@@ -327,6 +366,8 @@ model.fit(X_train, y_train)
 Docs: [Deploy models and applications](https://docs.mlrun.org/en/latest/deployment/index.html)
 
 ### Real-Time Inferencing
+{:.no_toc}
+
 Docs: [Using built-in model serving classes](https://docs.mlrun.org/en/latest/serving/built-in-model-serving.html), [Build your own model serving class](https://docs.mlrun.org/en/latest/serving/custom-model-serving-class.html), [Model serving API](https://docs.mlrun.org/en/latest/serving/model-api.html)
 
 ```python
@@ -341,6 +382,8 @@ addr = serve.deploy()
 ```
 
 ### Batch Inferencing
+{:.no_toc}
+
 Docs: [Batch inference](https://docs.mlrun.org/en/latest/deployment/batch_inference.html)
 
 ```python
@@ -356,6 +399,8 @@ batch_run = project.run_function(
 Docs: [Model monitoring overview](https://docs.mlrun.org/en/latest/monitoring/model-monitoring-deployment.html), [Batch inference](https://docs.mlrun.org/en/latest/deployment/batch_inference.html) 
 
 ### Real Time Drift Detection
+{:.no_toc}
+
 ```python
 # Log model with training set
 context.log_model("model", model_file="model.pkl", training_set=X_train)
@@ -370,6 +415,8 @@ serving_fn.deploy()
 ```
 
 ### Batch Drift Detection
+{:.no_toc}
+
 ```python
 batch_inference = mlrun.import_function("hub://batch_inference")
 batch_run = project.run_function(
