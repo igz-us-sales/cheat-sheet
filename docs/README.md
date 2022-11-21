@@ -308,14 +308,14 @@ context.logger.error(message="Something went wrong")
 ## Experiment Tracking
 Docs: [MLRun execution context](https://docs.mlrun.org/en/latest/concepts/mlrun-execution-context.html), [Automated experiment tracking](https://docs.mlrun.org/en/latest/concepts/auto-logging-mlops.html)
 
-#### Manual Logging
+### Manual Logging
 ```python
 context.log_result(key="accuracy", value=0.934)
 context.log_model(key="model", model_file="model.pkl")
 context.log_dataset(key="model", df=df, format="csv", index=False)
 ```
 
-#### Automatic Logging
+### Automatic Logging
 ```python
 from mlrun.frameworks.sklearn import apply_mlrun
 
@@ -323,10 +323,39 @@ apply_mlrun(model=model, model_name="my_model", x_test=X_test, y_test=y_test)
 model.fit(X_train, y_train)
 ```
 
+## Model Inferencing
+Docs: [Deploy models and applications](https://docs.mlrun.org/en/latest/deployment/index.html)
+
+### Real-Time Inferencing
+Docs: [Using built-in model serving classes](https://docs.mlrun.org/en/latest/serving/built-in-model-serving.html), [Build your own model serving class](https://docs.mlrun.org/en/latest/serving/custom-model-serving-class.html), [Model serving API](https://docs.mlrun.org/en/latest/serving/model-api.html)
+
+```python
+serve = mlrun.import_function('hub://v2_model_server')
+serve.add_model(key="iris", model_path="https://s3.wasabisys.com/iguazio/models/iris/model.pkl")
+
+# Deploy to local mock server (Development testing)
+mock_server = serve.to_mock_server()
+
+# Deploy to serverless function (Production K8s deployment)
+addr = serve.deploy()
+```
+
+### Batch Inferencing
+Docs: [Batch inference](https://docs.mlrun.org/en/latest/deployment/batch_inference.html)
+
+```python
+batch_inference = mlrun.import_function("hub://batch_inference")
+batch_run = project.run_function(
+    batch_inference,
+    inputs={"dataset": prediction_set_path},
+    params={"model": model_artifact.uri},
+)
+```
+
 ## Model Monitoring + Drift Detection
 Docs: [Model monitoring overview](https://docs.mlrun.org/en/latest/monitoring/model-monitoring-deployment.html), [Batch inference](https://docs.mlrun.org/en/latest/deployment/batch_inference.html) 
 
-#### Real Time Drift Detection
+### Real Time Drift Detection
 ```python
 # Log model with training set
 context.log_model("model", model_file="model.pkl", training_set=X_train)
@@ -340,7 +369,7 @@ serving_fn.set_tracking()
 serving_fn.deploy()
 ```
 
-#### Batch Drift Detection
+### Batch Drift Detection
 ```python
 batch_inference = mlrun.import_function("hub://batch_inference")
 batch_run = project.run_function(
