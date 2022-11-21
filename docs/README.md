@@ -199,38 +199,42 @@ spark.deploy() # build image
 spark.run(artifact_path='/User') # run spark job
 ```
 
-### Resource Management - Essentials
+### Resource Management
 Docs: [Managing job resources](https://docs.mlrun.org/en/latest/runtimes/configuring-job-resources.html)
-```python
-fn = mlrun.import_function('hub://auto_trainer')
 
+#### Requests/Limits (MEM/CPU/GPU)
+```python
 # Requests - lower bound
 fn.with_requests(mem="1G", cpu=1)
 
 # Limits - upper bound
 fn.with_limits(mem="2G", cpu=2, gpus=1)
+```
 
+#### Scaling + Auto-Scaling
+```python
 # Nuclio/serving scaling
 fn.spec.replicas = 2
 fn.spec.min_replicas = 1
 fn.spec.min_replicas = 4
 ```
 
-### Resource Management - Advanced
-Docs: [Managing job resources](https://docs.mlrun.org/en/latest/runtimes/configuring-job-resources.html)
+#### Mount persistent storage
 ```python
-fn = mlrun.import_function('hub://auto_trainer')
-
-# Mount persistent storage - V3IO
+# Mount Iguazio V3IO
 fn.apply(mlrun.mount_v3io())
 
-# Mount persistent storage - PVC
+# Mount PVC
 fn.apply(mlrun.platforms.mount_pvc(pvc_name="data-claim", volume_name="data", volume_mount_path="/data"))
+```
 
-# Pod priority
+#### Pod Priority
+```python
 fn.with_priority_class(name="igz-workload-medium")
+```
 
-# Node selection
+#### Node Selection
+```python
 fn.with_node_selection(node_selector={"app.iguazio.com/lifecycle" : "non-preemptible"})
 ```
 
@@ -260,7 +264,7 @@ serve.add_trigger("cron_schedule", spec=nuclio.CronTrigger(schedule="0 9 * * *")
 ### Building Docker Images
 Docs: [Build function image](https://docs.mlrun.org/en/latest/runtimes/image-build.html), [Images and their usage in MLRun](https://docs.mlrun.org/en/latest/runtimes/images.html#images-usage)
 
-Manually Build Image
+#### Manually Build Image
 ```python
 project.set_function(
    "train_code.py", name="trainer", kind="job",
@@ -279,7 +283,7 @@ project.build_function(
 )
 ```
 
-Automatically Build Image
+#### Automatically Build Image
 ```python
 project.set_function(
    "train_code.py", name="trainer", kind="job",
@@ -322,7 +326,7 @@ model.fit(X_train, y_train)
 ## Model Monitoring + Drift Detection
 Docs: [Model monitoring overview](https://docs.mlrun.org/en/latest/monitoring/model-monitoring-deployment.html), [Batch inference](https://docs.mlrun.org/en/latest/deployment/batch_inference.html) 
 
-Real Time Drift Detection
+#### Real Time Drift Detection
 ```python
 # Log model with training set
 context.log_model("model", model_file="model.pkl", training_set=X_train)
@@ -336,7 +340,7 @@ serving_fn.set_tracking()
 serving_fn.deploy()
 ```
 
-Batch Drift Detection
+#### Batch Drift Detection
 ```python
 batch_inference = mlrun.import_function("hub://batch_inference")
 batch_run = project.run_function(
