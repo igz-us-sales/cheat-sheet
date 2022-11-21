@@ -73,28 +73,51 @@ fn = project.set_function(
 ```
 
 ### CI/CD Integration
+
+#### Overview
 Docs: [CI/CD integration](https://docs.mlrun.org/en/latest/projects/ci-integration.html)
 
 Best practice for working with CI/CD is using [MLRun Projects](https://docs.mlrun.org/en/latest/projects/project.html) with a combination of the following:
 - **Git:** Single source of truth for source code and deployments via infrastructure as code. Allows for collaboration between multiple developers. An MLRun project can (and should be) be tied to a Git repo. One project maps to one Git repo.
-
-> **Note:** *Different branches within the* **Git** *repo can be used to represent different environments like* **dev, staging,** *and* **prod**.
-
 - **CI/CD:** Main tool for orchestrating production deployments. The CI/CD system should be responsible for deploying latest code changes from Git onto the remote cluster via MLRun Python SDK or CLI. 
-> **Note: CI/CD** *deployment is recommended for best practice This also allows for a human-in-the-loop or restricting who is allowed to deploy to production*.
-
 - **Iguazio/MLRun:** Kubernetes based compute environment for running data analytics, model training, or model deployment tasks.  Additionally, the cluster is where all experiment tracking, job information, logs, and more is located.
-> **Note:** *The cluster will be where everything is actually executed - the* **CI/CD** *system will execute code from the* **Git** *repo remotely onto this cluster.*
 
 See [MLRun Projects](https://docs.mlrun.org/en/latest/projects/project.html) for more information on Git and CI/CD integration. In practice, this may look something like the following:
 ![](./img/cicd_flow.png)
 
-Note that the different colors map to the components above:
-- Steps in **pink** are interactions with the **Git** repo (e.g. commiting code to a branch or making a pull request). These are often done ad-hoc by individual developers.
-- Steps in **yellow** are happening in **CI/CD** system (e.g. unit tests, building Docker images, tags and releases). However, because the **CI/CD** system is the master orchestrator of everything, it is difficult to separate the **CI/CD** steps entirely from **Git** and **Iguazio/MLRun**.
-- Steps in **blue** are happening in **Iguazio/MLRun** compute environment (e.g. model training pipeline, model deployment, data analysis). It is important to note that while the code itself is being executed in the **Iguazio/MLRun** environment, it was kicked off remotely from the **CI/CD** system using code from the **Git** repo.
+#### Example (GitHub Actions)
+Full Example: [MLRun project-demo](https://github.com/mlrun/project-demo)
 
-> **Note:** *It is also possible to remove the* **CI/CD** *system from the equation and only use* **Git** *and* **Iguazio/MLRun**. *However, many teams find that the* **CI/CD** *system adds another level of automation and control which works well for their organization - especially if they are already using* **CI/CD** *in their current tooling.*
+```yaml
+name: mlrun-project-workflow
+on: [issue_comment]
+
+jobs:
+  submit-project:
+    if: github.event.issue.pull_request != null && startsWith(github.event.comment.body, '/run')
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.7'
+        architecture: 'x64'
+    
+    - name: Install mlrun
+      run: python -m pip install pip install mlrun
+    - name: Submit project
+      run: python -m mlrun project ./ --watch --run main ${CMD:5}
+      env:
+        V3IO_USERNAME: ${{ secrets.V3IO_USERNAME }}
+        V3IO_API: ${{ secrets.V3IO_API }}
+        V3IO_ACCESS_KEY: ${{ secrets.V3IO_ACCESS_KEY }}
+        MLRUN_DBPATH: ${{ secrets.MLRUN_DBPATH }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        CMD: ${{ github.event.comment.body}}
+```
 
 ### Secrets
 Docs: [Working with secrets](https://docs.mlrun.org/en/latest/secrets.html)
@@ -114,15 +137,23 @@ context.get_secret("AWS_KEY")
 
 ### Essential Runtimes
 Docs: [Kinds of functions (runtimes)](https://docs.mlrun.org/en/latest/concepts/functions-overview.html)
+
+#### Job
 ```python
 # Job - run once to completion
 job = project.set_function(name="my-job", func="my_job.py", kind="job", image="mlrun/mlrun", handler="handler")
 project.run_function(job)
+```
 
+#### Nuclio
+```python
 # Nuclio - generic real-time function to do something when triggered
 nuclio = project.set_function(name="my-nuclio", func="my_nuclio.py", kind="nuclio", image="mlrun/mlrun", handler="handler")
 project.deploy_function(nuclio)
+```
 
+#### Serving
+```python
 # Serving - specialized Nuclio function specifically for model serving
 serving = project.set_function(name="my-serving", func="my_serving.py", kind="serving", image="mlrun/mlrun", handler="handler")
 serving.add_model(key="iris", model_path="https://s3.wasabisys.com/iguazio/models/iris/model.pkl", model_class="ClassifierModel")
@@ -131,13 +162,16 @@ project.deploy_function(serving)
 
 ### Distributed Runtimes
 Docs: [Kinds of functions (runtimes)](https://docs.mlrun.org/en/latest/concepts/functions-overview.html)
+
+#### MPIJob (Horovod)
 ```python
-# MPIJob
 mpijob = mlrun.code_to_function(name="my-mpijob", filename="my_mpijob.py", kind="mpijob", image="mlrun/mlrun", handler="handler")
 mpijob.spec.replicas = 3
 mpijob.run()
+```
 
-# Dask cluster
+#### Dask
+```python
 dask = mlrun.new_function(name="my-dask", kind="dask", image="mlrun/ml-models")
 dask.spec.remote = True
 dask.spec.replicas = 5
@@ -146,8 +180,10 @@ dask.with_limits(mem="6G")
 dask.spec.nthreads = 5
 dask.apply(mlrun.mount_v3io())
 dask.client
+```
 
-# Spark Operator
+#### Spark Operator
+```python
 import os
 read_csv_filepath = os.path.join(os.path.abspath('.'), 'spark_read_csv.py')
 
@@ -259,33 +295,24 @@ project.run_function("trainer", auto_build=True)
 Docs: [MLRun execution context](https://docs.mlrun.org/en/latest/concepts/mlrun-execution-context.html)
 
 ```python
-# Debug
 context.logger.debug(message="Debugging info")
-
-# Info
 context.logger.info(message="Something happened")
-
-# Warning
 context.logger.warning(message="Something might go wrong")
-
-# Error
 context.logger.error(message="Something went wrong")
 ```
 
 ## Experiment Tracking
 Docs: [MLRun execution context](https://docs.mlrun.org/en/latest/concepts/mlrun-execution-context.html), [Automated experiment tracking](https://docs.mlrun.org/en/latest/concepts/auto-logging-mlops.html)
 
+#### Manual Logging
 ```python
-# Log metric
 context.log_result(key="accuracy", value=0.934)
-
-# Log model
 context.log_model(key="model", model_file="model.pkl")
-
-# Log dataset
 context.log_dataset(key="model", df=df, format="csv", index=False)
+```
 
-# Auto logging
+#### Automatic Logging
+```python
 from mlrun.frameworks.sklearn import apply_mlrun
 
 apply_mlrun(model=model, model_name="my_model", x_test=X_test, y_test=y_test)
