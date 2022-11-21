@@ -349,9 +349,10 @@ batch_run = project.run_function(
         "dataset": prediction_set_path,
         "sample_set": training_set_path
     },
-    params={"model": model_artifact.uri,
-            "label_columns": "label",
-            "perform_drift_analysis" : True
+    params={
+        "model": model_artifact.uri,
+        "label_columns": "label",
+        "perform_drift_analysis" : True
     }
 )
 ```
