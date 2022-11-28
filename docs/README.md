@@ -438,3 +438,132 @@ batch_run = project.run_function(
 ## Real-Time Pipelines
 
 ## Hyperparameter Tuning
+Docs: [Hyperparameter tuning optimization](https://docs.mlrun.org/en/latest/hyper-params.html)
+
+The following examples will be using the following function:
+```python
+# hp.py
+def hyper_func(context, p1, p2):
+    print(f"p1={p1}, p2={p2}, result={p1 * p2}")
+    context.log_result("multiplier", p1 * p2)
+
+# MLRun function in project
+fn = project.set_function(
+    name="hp",
+    func="hp.py",
+    image="mlrun/mlrun",
+    kind="job", handler="hyper_func"
+)
+```
+> Note the selector can be named any value that is logged - in this case `multiplier`
+
+### Grid Search (default)
+{:.no_toc}
+
+Docs: [Grid Search](https://docs.mlrun.org/en/latest/hyper-params.html#grid-search-default)
+
+Runs all parameter combinations
+```python
+hp_tuning_run = project.run_function(
+    "hp", 
+    hyperparams={"p1": [2,4,1], "p2": [10,20]}, 
+    selector="max.multiplier"
+)
+```
+
+### Random Search
+{:.no_toc}
+
+Docs: [Random Search](https://docs.mlrun.org/en/latest/hyper-params.html#random-search)
+
+Runs random sample of parameter combinations
+```python
+hp_tuning_run = project.run_function(
+    "hp",
+    hyperparams={"p1": [2, 4, 1], "p2": [10, 20]},
+    selector="max.multiplier",
+    hyper_param_options=mlrun.model.HyperParamOptions(
+        strategy="random", max_iterations=5
+    ),
+)
+```
+
+### List Search
+{:.no_toc}
+
+Docs: [List Search](https://docs.mlrun.org/en/latest/hyper-params.html#list-search)
+
+Runs first parameter from each list followed by second from each list etc. **All lists must be of equal size**.
+```python
+hp_tuning_run = project.run_function(
+    "hp",
+    hyperparams={"p1": [2, 4, 1], "p2": [10, 20, 30]},
+    selector="max.multiplier",
+    hyper_param_options=mlrun.model.HyperParamOptions(strategy="list"),
+)
+```
+
+### Parallel Executors
+{:.no_toc}
+
+Docs: [Parallel execution over containers](https://docs.mlrun.org/en/latest/hyper-params.html#parallel-execution-over-containers)
+
+#### Dask
+{:.no_toc}
+
+Docs: [Running the workers using Dask](https://docs.mlrun.org/en/latest/hyper-params.html#running-the-workers-using-dask)
+
+```python
+# Create Dask cluster
+dask_cluster = mlrun.new_function("dask-cluster", kind="dask", image="mlrun/ml-models")
+dask_cluster.apply(mlrun.mount_v3io())  # add volume mounts
+dask_cluster.spec.service_type = "NodePort"  # open interface to the dask UI dashboard
+dask_cluster.spec.replicas = 2  # define two containers
+uri = dask_cluster.save()
+uri
+
+# Run parallel hyperparameter trials
+hp_tuning_run_dask = project.run_function(
+    "hp",
+    hyperparams={"p1": [2, 4, 1], "p2": [10, 20, 30]},
+    selector="max.multiplier",
+    hyper_param_options=mlrun.model.HyperParamOptions(
+        strategy="grid",
+        parallel_runs=4,
+        dask_cluster_uri=uri,
+        teardown_dask=True,
+    ),
+)
+```
+
+#### Nuclio
+{:.no_toc}
+
+Docs: [Running the workers using Nuclio](https://docs.mlrun.org/en/latest/hyper-params.html#running-the-workers-using-nuclio)
+
+```python
+# Create nuclio:mlrun function
+fn = project.set_function(
+    name='hyper-tst2',
+    func="hp.py",
+    kind='nuclio:mlrun',
+    image='mlrun/mlrun'
+)
+# replicas * workers need to match or exceed parallel_runs
+fn.spec.replicas = 2
+fn.with_http(workers=2)
+fn.deploy()
+
+# Run the parallel tasks over the function
+hp_tuning_run_dask = project.run_function(
+    "hyper-tst2",
+    hyperparams={"p1": [2, 4, 1], "p2": [10, 20, 30]},
+    selector="max.multiplier",
+    hyper_param_options=mlrun.model.HyperParamOptions(
+        strategy="grid",
+        parallel_runs=4,
+        max_errors=3
+    ),
+    handler="hyper_func"
+)
+```
