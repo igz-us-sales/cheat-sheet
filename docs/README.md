@@ -443,7 +443,7 @@ batch_run = project.run_function(
 ## Hyperparameter Tuning
 Docs: [Hyperparameter tuning optimization](https://docs.mlrun.org/en/latest/hyper-params.html)
 
-The following examples will be using the following function:
+The following examples will be using the this function:
 ```python
 # hp.py
 def hyper_func(context, p1, p2):
@@ -455,7 +455,8 @@ fn = project.set_function(
     name="hp",
     func="hp.py",
     image="mlrun/mlrun",
-    kind="job", handler="hyper_func"
+    kind="job",
+    handler="hyper_func"
 )
 ```
 > Note the selector can be named any value that is logged - in this case `multiplier`
