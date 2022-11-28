@@ -1,3 +1,6 @@
+# MLRun Cheat Sheet
+{:.no_toc}
+
 ## Table of Contents
 {:.no_toc}
 
