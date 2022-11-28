@@ -443,7 +443,7 @@ batch_run = project.run_function(
 ## Hyperparameter Tuning
 Docs: [Hyperparameter tuning optimization](https://docs.mlrun.org/en/latest/hyper-params.html)
 
-The following examples will be using the this function:
+The following examples will be using this function:
 ```python
 # hp.py
 def hyper_func(context, p1, p2):
