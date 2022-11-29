@@ -436,9 +436,14 @@ batch_run = project.run_function(
 )
 ```
 
+## Sources/Targets
+Docs: [Sources](https://docs.mlrun.org/en/latest/serving/available-steps.html#sources), [Targets](https://docs.mlrun.org/en/latest/serving/available-steps.html#targets)
+
 ## Feature Store
+Docs: [Feature Store](https://docs.mlrun.org/en/latest/feature-store/feature-store.html)
 
 ## Real-Time Pipelines
+Docs: [Real-time serving pipelines](https://docs.mlrun.org/en/latest/serving/serving-graph.html)
 
 ## Hyperparameter Tuning
 Docs: [Hyperparameter tuning optimization](https://docs.mlrun.org/en/latest/hyper-params.html)
