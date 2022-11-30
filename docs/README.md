@@ -471,6 +471,19 @@ kafka_source = KafkaSource(
     initial_offset='earliest'
 )
 kafka_source.add_nuclio_trigger(function=fn)
+
+# Snowflake
+snowflake_source = SnowflakeSource(
+    "customer_sf",
+    query="select * from customer limit 100000",
+    url="<url>",
+    user="<user>",
+    password="<password>",
+    database="SNOWFLAKE_SAMPLE_DATA",
+    schema="TPCH_SF1",
+    warehouse="compute_wh",
+)
+snowflake_df = snowflake_source.to_dataframe()
 ```
 
 ### Targets
