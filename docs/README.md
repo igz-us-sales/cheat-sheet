@@ -436,8 +436,47 @@ batch_run = project.run_function(
 )
 ```
 
-## Sources/Targets
-Docs: [Sources](https://docs.mlrun.org/en/latest/serving/available-steps.html#sources), [Targets](https://docs.mlrun.org/en/latest/serving/available-steps.html#targets)
+## Sources and Targets
+
+Abstract underlying storage to easily retrieve and store data from various sources
+
+### Sources
+{:.no_toc}
+
+Docs: [Sources](https://docs.mlrun.org/en/latest/serving/available-steps.html#sources)
+
+```python
+from mlrun.datastore.sources import CSVSource, ParquetSource, BigQuerySource, KafkaSource
+
+# CSV
+csv_source = CSVSource(name="demo", path="/User/getting_started/examples/demo.csv")
+csv_df = csv_source.to_dataframe()
+
+# Parquet
+from pyspark.sql import SparkSession
+
+session = SparkSession.builder.master("local").getOrCreate()
+parquet_source = ParquetSource(name="userdata", path="v3io://users/admin/getting_started/examples/userdata1.parquet")
+spark_df = parquet_source.to_spark_df(session=session)
+
+# BigQuery
+bq_source = BigQuerySource("bq2", table="the-psf.pypi.downloads20210328", gcp_project="my_project")
+bq_df = bq_source.to_dataframe()
+
+# Kafka
+kafka_source = KafkaSource(
+    brokers='localhost:9092',
+    topics='topic',
+    group='serving',
+    initial_offset='earliest'
+)
+kafka_source.add_nuclio_trigger(function=fn)
+```
+
+### Targets
+{:.no_toc}
+
+Docs: [Targets](https://docs.mlrun.org/en/latest/serving/available-steps.html#targets)
 
 ## Feature Store
 Docs: [Feature Store](https://docs.mlrun.org/en/latest/feature-store/feature-store.html)
