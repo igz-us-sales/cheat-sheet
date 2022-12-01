@@ -14,7 +14,7 @@ Docs: [Set up your client environment](https://docs.mlrun.org/en/latest/install/
 {:.no_toc}
 
 MLRun has two main components, the service and the client (SDK)
-- MLRun service runs over Kubernetes (can also be deployed using local Docker for demo and test purposes) - see [installation documentaiton](https://docs.mlrun.org/en/latest/install.html) for more information
+- MLRun service runs over Kubernetes (can also be deployed using local Docker for demo and test purposes) - see [installation documentation](https://docs.mlrun.org/en/latest/install.html) for more information
 - MLRun client SDK is installed in your development environment via `pip` and interacts with the service using REST API calls
 
 ### Remote Connection (Laptop, CI/CD, etc.)
@@ -66,7 +66,9 @@ Docs: [Create and use functions](https://docs.mlrun.org/en/latest/runtimes/creat
 
 An MLRun project can be backed by a Git repo. Functions will consume the repo and pull the code either once when Docker image is built (production workflow) or at runtime (development workflow).
 
-Pull repo code once (bake into Docker image)
+#### Pull repo code once (bake into Docker image)
+{:.no_toc}
+
 ```python
 project.set_source(source="git://github.com/mlrun/project-archive.git")
 
@@ -78,7 +80,9 @@ fn = project.set_function(
 project.build_function(fn)
 ```
 
-Pull repo code at runtime
+#### Pull repo code at runtime
+{:.no_toc}
+
 ```python
 project.set_source(source="git://github.com/mlrun/project-archive.git", pull_at_runtime=True)
 
@@ -468,10 +472,12 @@ batch_run = project.run_function(
 
 Abstract underlying storage to easily retrieve and store data from various sources
 
-Docs: [Sources](https://docs.mlrun.org/en/latest/serving/available-steps.html#sources), [Targets](https://docs.mlrun.org/en/latest/serving/available-steps.html#targets), [Ingest data using the feature store](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html)
+Docs: [Ingest data using the feature store](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html)
 
 ### Sources
 {:.no_toc}
+
+Docs: [Sources](https://docs.mlrun.org/en/latest/serving/available-steps.html#sources)
 
 ```python
 from mlrun.datastore.sources import CSVSource, ParquetSource, BigQuerySource, KafkaSource
@@ -517,6 +523,8 @@ snowflake_df = snowflake_source.to_dataframe()
 
 ### Targets
 {:.no_toc}
+
+Docs: [Targets](https://docs.mlrun.org/en/latest/serving/available-steps.html#targets)
 
 ```python
 from mlrun.datastore.targets import CSVTarget, ParquetTarget
