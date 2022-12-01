@@ -620,6 +620,7 @@ server.test(body=5)
 # K8s deployment
 project.deploy_function(fn)
 ```
+![](./img/hello_world_graph.png)
 
 ### Simple Model Serving Router
 {:.no_toc}
@@ -638,6 +639,7 @@ project.deploy_function(fn)
 # test the live model endpoint
 fn.invoke('/v2/models/model1/infer', body={"inputs": [5]})
 ```
+![](./img/simple_model_serving.png)
 
 ### Custom Model Serving Class
 {:.no_toc}
@@ -664,7 +666,7 @@ class ClassifierModel(mlrun.serving.V2ModelServer):
         return result.tolist()
 ```
 
-### Complex Model Serving Router
+### Advanced Data Processing and Serving Ensemble
 {:.no_toc}
 
 ```python
@@ -689,6 +691,7 @@ graph.add_step(class_name="Echo", name="final", after="ensemble").respond()
 # add error handling step, run only when/if the "pre-process" step fail (keep after="")  
 graph.add_step(handler="error_catcher", name="catcher", full_event=True, after="")
 ```
+![](./img/advanced_model_serving.png)
 
 ## Hyperparameter Tuning
 Docs: [Hyperparameter tuning optimization](https://docs.mlrun.org/en/latest/hyper-params.html)
