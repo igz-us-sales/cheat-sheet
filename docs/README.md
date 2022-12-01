@@ -556,7 +556,122 @@ redis_target.write_dataframe(df=kafka_df)
 ```
 
 ## Feature Store
-Docs: [Feature Store](https://docs.mlrun.org/en/latest/feature-store/feature-store.html)
+Docs: [Feature Store](https://docs.mlrun.org/en/latest/feature-store/feature-store.html), [Feature sets](https://docs.mlrun.org/en/latest/feature-store/feature-sets.html), [Feature set transformations](https://docs.mlrun.org/en/latest/feature-store/transformations.html), [Creating and using feature vectors](https://docs.mlrun.org/en/latest/feature-store/feature-vectors.html)
+
+### Definitions
+{:.no_toc}
+
+Docs: [Feature store overview](https://docs.mlrun.org/en/latest/feature-store/feature-store-overview.html)
+
+- Feature Set: A group of features that can be ingested together and stored in logical group (usually one-to-one with a dataset, stream, table, etc.)
+- Feature Vector: A group of features from different Feature Sets
+
+![](./img/feature_store_architecture.png)
+
+### Engines
+{:.no_toc}
+
+Docs: [Ingest data using the feature store](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html), [Ingest features with Spark](https://docs.mlrun.org/en/latest/feature-store/using-spark-engine.html)
+
+- `storey` engine (default) is designed for real-time data (e.g. individual records) that will be transformed using Python functions and classes
+- `pandas` engine is designed for batch data that can fit into memory that will be transformed using Pandas dataframes
+- `spark` engine is designed for batch data that cannot fit into memory that will be transformed using Spark dataframes
+
+### Feature Sets
+{:.no_toc}
+
+Docs: [Feature sets](https://docs.mlrun.org/en/latest/feature-store/feature-sets.html)
+
+#### Basic Ingestion
+{:.no_toc}
+
+```python
+import mlrun.feature_store as fstore
+from mlrun.datastore.sources import ParquetSource
+
+categorical_fset = fstore.FeatureSet(
+    name="heart-disease-categorical",
+    entities=[fstore.Entity("patient_id")],
+    description="Categorical columns for heart disease dataset"
+)
+
+fstore.ingest(
+    featureset=categorical_fset,
+    source=ParquetSource(path="./data/heart_disease_categorical.parquet")
+)
+```
+
+#### Feature Set per Engine
+{:.no_toc}
+
+```python
+from mlrun.datastore.sources import DataFrameSource
+
+# Storey engine
+storey_set = fstore.FeatureSet(
+    name="heart-disease-storey",
+    entities=[fstore.Entity("patient_id")],
+    description="Heart disease data via storey engine",
+    engine="storey"
+)
+fstore.ingest(featureset=storey_set, source=DataFrameSource(df=data))
+
+# Pandas engine
+pandas_set = fstore.FeatureSet(
+    name="heart-disease-pandas",
+    entities=[fstore.Entity("patient_id")],
+    description="Heart disease data via pandas engine",
+    engine="pandas"
+)
+fstore.ingest(featureset=pandas_set, source=DataFrameSource(df=data))
+
+# Spark engine
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName("Spark function").getOrCreate()
+
+spark_set = fstore.FeatureSet(
+    name="heart-disease-spark",
+    entities=[fstore.Entity("patient_id")],
+    description="Heart disease data via spark engine",
+    engine="spark"
+)
+fstore.ingest(featureset=spark_set, source=CSVSource(path=v3io_data_path), spark_context=spark)
+```
+
+### Feature Vectors
+{:.no_toc}
+
+Docs: [Feature vectors](https://docs.mlrun.org/en/latest/feature-store/feature-vectors.html)
+
+#### Basic Retrieval
+{:.no_toc}
+
+```python
+import mlrun.feature_store as fstore
+from mlrun.datastore.targets import ParquetTarget
+
+fvec = fstore.FeatureVector(
+    name="heart-disease-vector",
+    features=["heart-disease-categorical.*", "heart-disease-continuous.*"],
+    description="Heart disease dataset",
+)
+fvec.save()
+
+# Offline features for training
+df = fstore.get_offline_features("iguazio-academy/heart-disease-vector").to_dataframe()
+
+# Materialize offline features to parquet
+fstore.get_offline_features("iguazio-academy/heart-disease-vector", target=ParquetTarget())
+
+# Online features for serving
+feature_service = fstore.get_online_feature_service(feature_vector="iguazio-academy/heart-disease-vector")
+feature_service.get(
+    [
+        {"patient_id" : "e443544b-8d9e-4f6c-9623-e24b6139aae0"},
+        {"patient_id" : "8227d3df-16ab-4452-8ea5-99472362d982"}
+    ]
+)
+```
 
 ## Real-Time Pipelines
 Docs: [Real-time serving pipelines](https://docs.mlrun.org/en/latest/serving/serving-graph.html), [Real-time pipeline use cases](https://docs.mlrun.org/en/latest/serving/use-cases.html#), [Graph concepts and state machine](https://docs.mlrun.org/en/latest/serving/realtime-pipelines.html), [Model serving graph](https://docs.mlrun.org/en/latest/serving/model-serving-get-started.html), [Writing custom steps](https://docs.mlrun.org/en/latest/serving/writing-custom-steps.html)
