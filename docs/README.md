@@ -440,31 +440,32 @@ batch_run = project.run_function(
 
 Abstract underlying storage to easily retrieve and store data from various sources
 
+Docs: [Sources](https://docs.mlrun.org/en/latest/serving/available-steps.html#sources), [Targets](https://docs.mlrun.org/en/latest/serving/available-steps.html#targets), [Ingest data using the feature store](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html)
+
 ### Sources
 {:.no_toc}
-
-Docs: [Sources](https://docs.mlrun.org/en/latest/serving/available-steps.html#sources)
 
 ```python
 from mlrun.datastore.sources import CSVSource, ParquetSource, BigQuerySource, KafkaSource
 
 # CSV
-csv_source = CSVSource(name="demo", path="/User/getting_started/examples/demo.csv")
+csv_source = CSVSource(name="read", path="/User/getting_started/examples/demo.csv")
 csv_df = csv_source.to_dataframe()
 
 # Parquet
 from pyspark.sql import SparkSession
 
 session = SparkSession.builder.master("local").getOrCreate()
-parquet_source = ParquetSource(name="userdata", path="v3io://users/admin/getting_started/examples/userdata1.parquet")
+parquet_source = ParquetSource(name="read", path="v3io://users/admin/getting_started/examples/userdata1.parquet")
 spark_df = parquet_source.to_spark_df(session=session)
 
 # BigQuery
-bq_source = BigQuerySource("bq2", table="the-psf.pypi.downloads20210328", gcp_project="my_project")
+bq_source = BigQuerySource(name="read", table="the-psf.pypi.downloads20210328", gcp_project="my_project")
 bq_df = bq_source.to_dataframe()
 
 # Kafka
 kafka_source = KafkaSource(
+    name="read",
     brokers='localhost:9092',
     topics='topic',
     group='serving',
@@ -474,7 +475,7 @@ kafka_source.add_nuclio_trigger(function=fn)
 
 # Snowflake
 snowflake_source = SnowflakeSource(
-    "customer_sf",
+    name="read",
     query="select * from customer limit 100000",
     url="<url>",
     user="<user>",
@@ -489,7 +490,34 @@ snowflake_df = snowflake_source.to_dataframe()
 ### Targets
 {:.no_toc}
 
-Docs: [Targets](https://docs.mlrun.org/en/latest/serving/available-steps.html#targets)
+```python
+from mlrun.datastore.targets import CSVTarget, ParquetTarget
+
+# CSV
+csv_target = CSVTarget(name="write", path="/User/test.csv")
+csv_target.write_dataframe(df=csv_df, key_column="id")
+
+# Parquet
+pq_target = ParquetTarget(
+    name="write",
+    path="/User/test.parquet",
+    partitioned=True,
+    partition_cols=["country"]
+)
+pq_target.write_dataframe(df=pq_df, key_column="id")
+
+# Redis (see docs for writing online features)
+redis_target = RedisNoSqlTarget(name="write", path="redis://1.2.3.4:6379")
+redis_target.write_dataframe(df=redis_df)
+
+# Kafka (see docs for writing online features)
+kafka_target = KafkaSource(
+    name="write",
+    bootstrap_servers='localhost:9092',
+    topic='topic',
+)
+redis_target.write_dataframe(df=kafka_df)
+```
 
 ## Feature Store
 Docs: [Feature Store](https://docs.mlrun.org/en/latest/feature-store/feature-store.html)
