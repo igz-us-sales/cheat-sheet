@@ -347,6 +347,97 @@ project.set_function(
 project.run_function("trainer", auto_build=True)
 ```
 
+## Multi-Stage Workflows (Batch Pipelines)
+
+Docs: [Running a multi-stage workflow](https://docs.mlrun.org/en/latest/concepts/workflow-overview.html)
+
+### Write a workflow
+{:.no_toc}
+
+```python
+# pipeline.py
+from kfp import dsl
+import mlrun
+import nuclio
+
+# Create a Kubeflow Pipelines pipeline
+@dsl.pipeline(
+    name="batch-pipeline",
+    description="Example of batch pipeline for heart disease dataset"
+)
+def pipeline(source_url, label_column):
+    
+    # Get current project
+    project = mlrun.get_current_project()
+    
+    # Ingest the data set
+    ingest = mlrun.run_function(
+        'get-data',
+        handler='prep_data',
+        inputs={'source_url': source_url},
+        params={'label_column': label_column},
+        outputs=["cleaned_data"]
+    )
+    
+    # Train a model   
+    train = mlrun.run_function(
+        "train",
+        handler="train_model",
+        inputs={"dataset": ingest.outputs["cleaned_data"]},
+        params={"label_column": label_column},
+        outputs=['model']
+    )
+```
+
+### Add workflow to project
+{:.no_toc}
+
+```python
+# Functions within workflow
+project.set_function(name='get-data', func='get_data.py', kind='job', image='mlrun/mlrun')
+project.set_function(name='train', func='train.py', kind='job', image='mlrun/mlrun')
+
+# Workflow
+project.set_workflow(name='main', workflow_path='pipeline.py')
+
+project.save()
+```
+
+### Run workflow
+{:.no_toc}
+
+Python SDK
+```python
+run_id = project.run(
+    name="main",
+    arguments={
+        "source_url" : "store://feature-vectors/heart-disease-classifier/heart-disease-vec:latest",
+        "label_column" : "target"
+    }
+)
+```
+
+CLI
+```bash
+mlrun project --run main \
+    --arguments source_url=store://feature-vectors/heart-disease-classifier/heart-disease-vec:latest \
+    --arguments label_column=target
+```
+
+### Schedule workflow
+{:.no_toc}
+
+```python
+run_id = project.run(
+    name="main",
+    arguments={
+        "source_url" : "store://feature-vectors/heart-disease-classifier/heart-disease-vec:latest",
+        "label_column" : "target"
+    },
+    schedule="0 * * * *"
+)
+```
+
 ## Logging
 Docs: [MLRun execution context](https://docs.mlrun.org/en/latest/concepts/mlrun-execution-context.html)
 
