@@ -559,7 +559,136 @@ redis_target.write_dataframe(df=kafka_df)
 Docs: [Feature Store](https://docs.mlrun.org/en/latest/feature-store/feature-store.html)
 
 ## Real-Time Pipelines
-Docs: [Real-time serving pipelines](https://docs.mlrun.org/en/latest/serving/serving-graph.html)
+Docs: [Real-time serving pipelines](https://docs.mlrun.org/en/latest/serving/serving-graph.html), [Real-time pipeline use cases](https://docs.mlrun.org/en/latest/serving/use-cases.html#), [Graph concepts and state machine](https://docs.mlrun.org/en/latest/serving/realtime-pipelines.html), [Model serving graph](https://docs.mlrun.org/en/latest/serving/model-serving-get-started.html), [Writing custom steps](https://docs.mlrun.org/en/latest/serving/writing-custom-steps.html)
+
+### Definitions
+{:.no_toc}
+
+Graph is composed of the following:
+- Step: A Step runs a function or class handler or a REST API call
+- Router: A special type of step is a router with routing logic and multiple child routes/models
+- Queue: A queue or stream that accepts data from one or more source steps and publishes to one or more output steps
+
+Graph has two modes (topologies):
+- Router topology (default): A minimal configuration with a single router and child tasks/routes
+- Flow topology: A full graph/DAG
+
+### Simple Graph
+{:.no_toc}
+
+Docs: [Real-time serving pipelines getting started](https://docs.mlrun.org/en/latest/serving/getting-started.html#getting-started)
+
+Define Python file(s) to orchestrate
+```python
+# graph.py
+def inc(x):
+    return x + 1
+
+def mul(x):
+    return x * 2
+
+class WithState:
+    def __init__(self, name, context, init_val=0):
+        self.name = name
+        self.context = context
+        self.counter = init_val
+
+    def do(self, x):
+        self.counter += 1
+        print(f"Echo: {self.name}, x: {x}, counter: {self.counter}")
+        return x + self.counter
+```
+
+Define MLRun function and graph
+```python
+import mlrun
+fn = project.set_function(
+    name="simple-graph", func="graph.py",
+    kind="serving", image="mlrun/mlrun"
+)
+graph = fn.set_topology("flow")
+
+# inc, mul, and WithState are all defined in graph.py
+graph.to(name="+1", handler='inc')\
+     .to(name="*2", handler='mul')\
+     .to(name="(X+counter)", class_name='WithState').respond()
+
+# Local testing
+server = fn.to_mock_server()
+server.test(body=5)
+
+# K8s deployment
+project.deploy_function(fn)
+```
+
+### Simple Model Serving Router
+{:.no_toc}
+
+Docs: [Example of a simple model serving router](https://docs.mlrun.org/en/latest/serving/use-cases.html#example-of-a-simple-model-serving-router)
+
+```python
+# load the sklearn model serving function and add models to it  
+fn = mlrun.import_function('hub://v2_model_server')
+fn.add_model("model1", model_path="s3://...")
+fn.add_model("model2", model_path="store://...")
+
+# deploy the function to the cluster
+project.deploy_function(fn)
+
+# test the live model endpoint
+fn.invoke('/v2/models/model1/infer', body={"inputs": [5]})
+```
+
+### Custom Model Serving Class
+{:.no_toc}
+
+Docs: [Model serving graph](https://docs.mlrun.org/en/latest/serving/model-serving-get-started.html)
+
+```python
+from cloudpickle import load
+from typing import List
+import numpy as np
+
+import mlrun
+
+class ClassifierModel(mlrun.serving.V2ModelServer):
+    def load(self):
+        """load and initialize the model and/or other elements"""
+        model_file, extra_data = self.get_model(".pkl")
+        self.model = load(open(model_file, "rb"))
+
+    def predict(self, body: dict) -> List:
+        """Generate model predictions from sample."""
+        feats = np.asarray(body["inputs"])
+        result: np.ndarray = self.model.predict(feats)
+        return result.tolist()
+```
+
+### Complex Model Serving Router
+{:.no_toc}
+
+```python
+fn = project.set_function(
+    name="advanced", func="demo.py", 
+    kind="serving", image="mlrun/mlrun"
+)
+graph = function.set_topology("flow", engine="async")
+
+# use built-in storey class or our custom Echo class to create and link Task steps
+graph.to("storey.Extend", name="enrich", _fn='({"tag": "something"})') \
+     .to(class_name="Echo", name="pre-process", some_arg='abc').error_handler("catcher")
+
+# add an Ensemble router with two child models (routes), the "*" prefix mark it is a router class
+router = graph.add_step("*mlrun.serving.VotingEnsemble", name="ensemble", after="pre-process")
+router.add_route("m1", class_name="ClassifierModel", model_path=path1)
+router.add_route("m2", class_name="ClassifierModel", model_path=path2)
+
+# add the final step (after the router) which handles post processing and respond to the client
+graph.add_step(class_name="Echo", name="final", after="ensemble").respond()
+
+# add error handling step, run only when/if the "pre-process" step fail (keep after="")  
+graph.add_step(handler="error_catcher", name="catcher", full_event=True, after="")
+```
 
 ## Hyperparameter Tuning
 Docs: [Hyperparameter tuning optimization](https://docs.mlrun.org/en/latest/hyper-params.html)
