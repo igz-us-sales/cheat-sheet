@@ -556,7 +556,7 @@ redis_target.write_dataframe(df=kafka_df)
 ```
 
 ## Feature Store
-Docs: [Feature Store](https://docs.mlrun.org/en/latest/feature-store/feature-store.html), [Feature sets](https://docs.mlrun.org/en/latest/feature-store/feature-sets.html), [Feature set transformations](https://docs.mlrun.org/en/latest/feature-store/transformations.html), [Creating and using feature vectors](https://docs.mlrun.org/en/latest/feature-store/feature-vectors.html)
+Docs: [Feature Store](https://docs.mlrun.org/en/latest/feature-store/feature-store.html), [Feature sets](https://docs.mlrun.org/en/latest/feature-store/feature-sets.html), [Feature set transformations](https://docs.mlrun.org/en/latest/feature-store/transformations.html), [Creating and using feature vectors](https://docs.mlrun.org/en/latest/feature-store/feature-vectors.html), [Feature store end-to-end demo](https://docs.mlrun.org/en/latest/feature-store/end-to-end-demo/index.html)
 
 ### Definitions
 {:.no_toc}
@@ -584,6 +584,8 @@ Docs: [Feature sets](https://docs.mlrun.org/en/latest/feature-store/feature-sets
 
 #### Basic Ingestion
 {:.no_toc}
+
+Docs: [Ingest data using the feature store](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html)
 
 ```python
 import mlrun.feature_store as fstore
@@ -636,6 +638,107 @@ spark_set = fstore.FeatureSet(
     engine="spark"
 )
 fstore.ingest(featureset=spark_set, source=CSVSource(path=v3io_data_path), spark_context=spark)
+```
+
+#### Ingestion Methods
+{:.no_toc}
+
+Docs: [Ingest data locally](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html#ingest-data-locally), [Ingest data using an MLRun job](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html#ingest-data-using-an-mlrun-job), [Real-time ingestion](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html#real-time-ingestion), [Incremental ingestion](https://docs.mlrun.org/en/latest/data-prep/ingest-data-fs.html#incremental-ingestion), [Feature store end-to-end demo](https://docs.mlrun.org/en/latest/feature-store/end-to-end-demo/index.html)
+
+```python
+# Local
+from mlrun.datastore.sources import CSVSource
+
+df = fstore.ingest(
+    featureset=fstore.FeatureSet("stocks", entities=[fstore.Entity("ticker")]),
+    source=CSVSource("mycsv", path="stocks.csv")
+)
+
+# Job
+from mlrun.datastore.sources import ParquetSource
+
+df = fstore.ingest(
+    featureset=fstore.FeatureSet("stocks", entities=[fstore.Entity("ticker")]),
+    source=ParquetSource("mypq", path="stocks.parquet"),
+    run_config=fstore.RunConfig(image='mlrun/mlrun')
+)
+
+# Real-Time
+from mlrun.datastore.sources import HttpSource
+
+url = fstore.deploy_ingestion_service(
+    featureset=fstore.FeatureSet("stocks", entities=[fstore.Entity("ticker")]),
+    source=HttpSource(key_field="ticker"),
+    run_config=fstore.RunConfig(image='mlrun/mlrun', kind="serving")
+)
+
+# Incremental
+cron_trigger = "* */1 * * *" # will run every hour
+fstore.ingest(
+    featureset=fstore.FeatureSet("stocks", entities=[fstore.Entity("ticker")]),
+    source=ParquetSource("mypq", path="stocks.parquet", time_field="time", schedule=cron_trigger),
+    run_config=fstore.RunConfig(image='mlrun/mlrun')
+)
+```
+
+#### Aggregations
+{:.no_toc}
+
+Docs: [add_aggregation()](https://docs.mlrun.org/en/latest/api/mlrun.feature_store.html#mlrun.feature_store.FeatureSet.add_aggregation)
+
+```python
+quotes_set = fstore.FeatureSet("stock-quotes", entities=[fstore.Entity("ticker")])
+quotes_set.add_aggregation("bid", ["min", "max"], ["1h"], "10m")
+```
+
+#### Built-in transformations
+{:.no_toc}
+
+Docs: [storey.transformations](https://docs.mlrun.org/en/latest/api/storey.transformations.html#module-storey.transformations), [Built-in transformations](https://docs.mlrun.org/en/latest/feature-store/transformations.html#built-in-transformations)
+
+```python
+quotes_set.graph.to("storey.Filter", "filter", _fn="(event['bid'] > 50)")
+```
+
+#### Custom transformations
+{:.no_toc}
+
+Docs: [Custom transformations](https://docs.mlrun.org/en/latest/feature-store/transformations.html#custom-transformations)
+
+Define transformation
+```python
+# Storey
+class MyMapStorey(MapClass):
+    def __init__(self, multiplier=1, **kwargs):
+        super().__init__(**kwargs)
+        self._multiplier = multiplier
+
+    def do(self, event):
+        event["multi"] = event["bid"] * self._multiplier
+        return event
+
+# Pandas
+class MyMapPandas:
+    def __init__(self, multiplier=1, **kwargs):
+        self._multiplier = multiplier
+
+    def do(self, df):
+        df["multi"] = df["bid"] * self._multiplier
+        return df
+
+# Spark
+class MyMapSpark:
+    def __init__(self, multiplier=1, **kwargs):
+        self._multiplier = multiplier
+
+    def do(self, df):
+        df = df.withColumn("multi", df["bid"] * self._multiplier)
+        return df
+```
+
+Use in graph
+```python
+quotes_set.graph.add_step("MyMapStorey", "multi", after="filter", multiplier=3)
 ```
 
 ### Feature Vectors
