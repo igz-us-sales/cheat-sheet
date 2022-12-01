@@ -8,7 +8,17 @@
 {:toc}
 
 ## MLRun Setup
-Docs: [Set up your client environment](https://docs.mlrun.org/en/latest/install/remote.html)
+Docs: [Set up your client environment](https://docs.mlrun.org/en/latest/install/remote.html), [Installation and setup guide](https://docs.mlrun.org/en/latest/install.html)
+
+### MLRun Server/Client Overview
+{:.no_toc}
+
+MLRun has two main components, the service and the client (SDK)
+- MLRun service runs over Kubernetes (can also be deployed using local Docker for demo and test purposes) - see [installation documentaiton](https://docs.mlrun.org/en/latest/install.html) for more information
+- MLRun client SDK is installed in your development environment via `pip` and interacts with the service using REST API calls
+
+### Remote Connection (Laptop, CI/CD, etc.)
+{:.no_toc}
 
 Create a `mlrun.env` file for environment variables
 ```
@@ -344,7 +354,7 @@ context.logger.error(message="Something went wrong")
 ```
 
 ## Experiment Tracking
-Docs: [MLRun execution context](https://docs.mlrun.org/en/latest/concepts/mlrun-execution-context.html), [Automated experiment tracking](https://docs.mlrun.org/en/latest/concepts/auto-logging-mlops.html)
+Docs: [MLRun execution context](https://docs.mlrun.org/en/latest/concepts/mlrun-execution-context.html), [Automated experiment tracking](https://docs.mlrun.org/en/latest/concepts/auto-logging-mlops.html), [Decorators and auto-logging](https://docs.mlrun.org/en/latest/concepts/decorators-and-auto-logging.html)
 
 ### Manual Logging
 {:.no_toc}
@@ -359,16 +369,34 @@ context.log_dataset(key="model", df=df, format="csv", index=False)
 {:.no_toc}
 
 ```python
+# Auto logging for ML frameworks
 from mlrun.frameworks.sklearn import apply_mlrun
 
 apply_mlrun(model=model, model_name="my_model", x_test=X_test, y_test=y_test)
 model.fit(X_train, y_train)
+
+# MLRun decorator for input/output parsing
+@mlrun.handler(labels={'framework':'scikit-learn'},
+               outputs=['prediction:dataset'],
+               inputs={"train_data": pd.DataFrame,
+                       "predict_input": pd.DataFrame})
+def train_and_predict(train_data,
+                      predict_input,
+                      label_column='label'):
+
+    x = train_data.drop(label_column, axis=1)
+    y = train_data[label_column]
+
+    clf = SVC()
+    clf.fit(x, y)
+
+    return list(clf.predict(predict_input))
 ```
 
-## Model Inferencing
+## Model Inferencing and Serving
 Docs: [Deploy models and applications](https://docs.mlrun.org/en/latest/deployment/index.html)
 
-### Real-Time Inferencing
+### Real-Time Serving
 {:.no_toc}
 
 Docs: [Using built-in model serving classes](https://docs.mlrun.org/en/latest/serving/built-in-model-serving.html), [Build your own model serving class](https://docs.mlrun.org/en/latest/serving/custom-model-serving-class.html), [Model serving API](https://docs.mlrun.org/en/latest/serving/model-api.html)
